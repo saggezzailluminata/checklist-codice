@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checklist — Il Codice del Passo Inverso</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8D5A0;
+    --gold-glow: rgba(201, 168, 76, 0.15);
+    --dark: #0D0D0F;
+    --dark-card: #16161A;
+    --dark-input: #1E1E24;
+    --text: #E8E4DD;
+    --text-muted: #8A8680;
+    --success: #4CAF7C;
+    --radius: 14px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+  }
+
+  /* === BACKGROUND TEXTURE === */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(201, 168, 76, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(201, 168, 76, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* === HEADER === */
+  .header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 32px 24px 24px;
+  }
+
+  .header-symbol {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeDown 0.6s ease forwards;
+  }
+
+  .header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    opacity: 0;
+    animation: fadeDown 0.6s ease 0.1s forwards;
+  }
+
+  .header .day-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeDown 0.6s ease 0.2s forwards;
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 20px auto;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.3s forwards;
+  }
+
+  /* === CONTENT === */
+  .content {
+    position: relative;
+    z-index: 1;
+    padding: 0 20px;
+  }
+
+  /* === CHECKLIST CARD === */
+  .card {
+    background: var(--dark-card);
+    border: 1px solid rgba(201, 168, 76, 0.1);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: slideUp 0.5s ease forwards;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.3s; }
+  .card:nth-child(2) { animation-delay: 0.4s; }
+  .card:nth-child(3) { animation-delay: 0.5s; }
+
+  .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--gold-light);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title .icon {
+    font-size: 18px;
+  }
+
+  /* === TOGGLE (SI/NO) === */
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .toggle-item:last-child {
+    border-bottom: none;
+  }
+
+  .toggle-label {
+    font-size: 14px;
+    color: var(--text);
+    flex: 1;
+    padding-right: 16px;
+    line-height: 1.4;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--dark-input);
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background: rgba(201, 168, 76, 0.2);
+    border-color: var(--gold);
+  }
+
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateY(-50%) translateX(22px);
+    background: var(--gold);
+  }
+
+  /* === SLIDER (1-10) === */
+  .slider-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .slider-item:last-child {
+    border-bottom: none;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .slider-label {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .slider-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gold);
+    min-width: 30px;
+    text-align: right;
+  }
+
+  .range-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--dark-input);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+    transition: transform 0.2s ease;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+  }
+
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* === TEXT INPUT === */
+  .input-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .input-item:last-child {
+    border-bottom: none;
+  }
+
+  .input-label {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  .text-input {
+    width: 100%;
+    background: var(--dark-input);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s ease;
+    resize: none;
+  }
+
+  .text-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  .text-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+
+  .number-input {
+    width: 80px;
+    text-align: center;
+  }
+
+  /* === COMPLETE BUTTON === */
+  .complete-section {
+    padding: 24px 20px;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeIn 0.6s ease 0.7s forwards;
+  }
+
+  .complete-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold), #B8943F);
+    color: var(--dark);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .complete-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .complete-btn:active::after {
+    opacity: 1;
+  }
+
+  .complete-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* === SUCCESS STATE === */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--dark);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .success-overlay.active {
+    display: flex;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .success-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+    animation: popIn 0.5s ease 0.2s both;
+  }
+
+  .success-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 12px;
+    animation: fadeDown 0.5s ease 0.4s both;
+  }
+
+  .success-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 280px;
+    animation: fadeDown 0.5s ease 0.5s both;
+  }
+
+  .success-close {
+    margin-top: 40px;
+    padding: 14px 40px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    animation: fadeDown 0.5s ease 0.6s both;
+    transition: all 0.3s ease;
+  }
+
+  .success-close:active {
+    background: var(--gold-glow);
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5); }
+    70% { transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-symbol">🦶</div>
+  <h1>Il Codice del Passo Inverso</h1>
+  <div class="day-label" id="dayLabel">Checklist giornaliera</div>
+</div>
+<div class="divider"></div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <!-- PRATICA -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">◯</span> La pratica
+    </div>
+
+    <div class="toggle-item">
+      <span class="toggle-label">Ho fatto il passo inverso oggi?</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="praticaFatta">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="input-item">
+      <div class="input-label">Minuti totali</div>
+      <input type="number" class="text-input number-input" id="minuti" placeholder="0" min="0" max="120" inputmode="numeric">
+    </div>
+
+    <div class="input-item">
+      <div class="input-label">Luogo della pratica</div>
+      <input type="text" class="text-input" id="luogo" placeholder="Es. parco, corridoio, giardino...">
+    </div>
+
+    <div class="toggle-item">
+      <span class="toggle-label">Ho ascoltato l'audio di oggi?</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="audioAscoltato">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- STATO MENTALE -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">◑</span> Stato mentale
+    </div>
+
+    <div class="slider-item">
+      <div class="slider-header">
+        <span class="slider-label">Prima della pratica</span>
+        <span class="slider-value" id="primaValue">5</span>
+      </div>
+      <div class="range-wrap">
+        <input type="range" id="primaPratica" min="1" max="10" value="5">
+        <div class="range-labels">
+          <span>1</span>
+          <span>10</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="slider-item">
+      <div class="slider-header">
+        <span class="slider-label">Dopo la pratica</span>
+        <span class="slider-value" id="dopoValue">5</span>
+      </div>
+      <div class="range-wrap">
+        <input type="range" id="dopoPratica" min="1" max="10" value="5">
+        <div class="range-labels">
+          <span>1</span>
+          <span>10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIFLESSIONI -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">✦</span> Riflessioni
+    </div>
+
+    <div class="input-item">
+      <div class="input-label">Ho notato qualcosa di diverso oggi?</div>
+      <textarea class="text-input" id="diverso" rows="3" placeholder="Scrivi liberamente..."></textarea>
+    </div>
+
+    <div class="input-item">
+      <div class="input-label">Una parola per descrivere la mia giornata</div>
+      <input type="text" class="text-input" id="parola" placeholder="Una sola parola...">
+    </div>
+  </div>
+
+</div>
+
+<!-- COMPLETE BUTTON -->
+<div class="complete-section">
+  <button class="complete-btn" id="completeBtn" onclick="completaChecklist()">
+    ✓&ensp;Completa la checklist
+  </button>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-icon">✦</div>
+  <div class="success-title">Checklist completata</div>
+  <div class="success-text">Hai fatto un passo in più nel tuo Codice. Ogni giorno conta. Ci vediamo domani alle 7:00.</div>
+  <button class="success-close" onclick="chiudi()">Chiudi</button>
+</div>
+
+<script>
+  // Telegram WebApp init
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  // Set today's date
+  const oggi = new Date();
+  const opzioni = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  const dataFormattata = oggi.toLocaleDateString('it-IT', opzioni);
+  document.getElementById('dayLabel').textContent = dataFormattata.charAt(0).toUpperCase() + dataFormattata.slice(1);
+
+  // Slider value updates
+  document.getElementById('primaPratica').addEventListener('input', function() {
+    document.getElementById('primaValue').textContent = this.value;
+    updateRangeBackground(this);
+  });
+
+  document.getElementById('dopoPratica').addEventListener('input', function() {
+    document.getElementById('dopoValue').textContent = this.value;
+    updateRangeBackground(this);
+  });
+
+  function updateRangeBackground(el) {
+    const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+    el.style.background = `linear-gradient(to right, var(--gold) 0%, var(--gold) ${pct}%, var(--dark-input) ${pct}%, var(--dark-input) 100%)`;
+  }
+
+  // Init range backgrounds
+  document.querySelectorAll('input[type="range"]').forEach(updateRangeBackground);
+
+  // Complete checklist
+  function completaChecklist() {
+    document.getElementById('successOverlay').classList.add('active');
+
+    // Haptic feedback if available
+    if (tg?.HapticFeedback) {
+      tg.HapticFeedback.notificationOccurred('success');
+    }
+  }
+
+  // Close
+  function chiudi() {
+    if (tg) {
+      tg.close();
+    } else {
+      document.getElementById('successOverlay').classList.remove('active');
+    }
+  }
+</script>
+
+</body>
+</html>
