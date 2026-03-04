@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Il Codice del Passo Inverso</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/7.2/telegram-web-app.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b; --card: #0e0e16; --card-alt: #141420;
+            --gold: #c8a431; --gold-light: #e8c84a; --gold-dim: rgba(200,164,49,0.12);
+            --green: #2dd4a8; --green-dim: rgba(45,212,168,0.12);
+            --purple: #8b5cf6; --purple-dim: rgba(139,92,246,0.12);
+            --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.12);
+            --red: #ef4444; --orange: #f59e0b;
+            --pink: #ec4899; --pink-dim: rgba(236,72,153,0.12);
+            --text: #e8e4dc; --text-dim: #6a665f; --border: rgba(200,164,49,0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); font-family: 'Crimson Pro', Georgia, serif; min-height: 100vh; overflow-x: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Header */
+        .header { padding: 24px 20px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(200,164,49,0.05) 0%, transparent 100%); text-align: center; }
+        .header-brand { font-size: 10px; letter-spacing: 0.3em; color: var(--gold); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+        .header-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+        .level-bar-wrap { max-width: 380px; margin: 14px auto 0; }
+        .level-labels { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+        .level-current { color: var(--gold); font-weight: 600; }
+        .level-next { color: var(--text-dim); font-size: 11px; }
+        .level-track { height: 5px; background: rgba(200,164,49,0.08); border-radius: 3px; overflow: hidden; }
+        .level-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 3px; transition: width 0.5s; }
+        .level-pts { font-size: 10px; color: var(--text-dim); margin-top: 3px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+        /* Nav */
+        .nav { display: flex; gap: 6px; padding: 14px 16px; overflow-x: auto; justify-content: center; -webkit-overflow-scrolling: touch; }
+        .nav::-webkit-scrollbar { display: none; }
+        .nav-tab { padding: 8px 13px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 12px; font-weight: 400; font-family: 'JetBrains Mono', monospace; white-space: nowrap; transition: all 0.2s; }
+        .nav-tab.active { background: var(--gold-dim); border-color: var(--gold); color: var(--text); font-weight: 600; }
+        .nav-tab.active-pink { background: var(--pink-dim); border-color: rgba(236,72,153,0.4); color: var(--text); font-weight: 600; }
+
+        /* Content */
+        .content { max-width: 480px; margin: 0 auto; padding: 0 16px 40px; }
+        .card { background: var(--card); border-radius: 14px; padding: 18px; border: 1px solid var(--border); margin-bottom: 16px; }
+        .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+
+        /* Checklist */
+        .check-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .check-date { font-size: 11px; color: var(--text-dim); }
+        .check-count { padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .check-item { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-radius: 10px; margin-bottom: 5px; cursor: pointer; border: 1px solid var(--border); transition: all 0.2s; }
+        .check-item.checked { border-color: rgba(255,255,255,0.1); }
+        .check-box { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 13px; font-weight: 700; }
+        .check-label { font-size: 12.5px; transition: all 0.2s; }
+        .check-label.done { text-decoration: line-through; opacity: 0.8; }
+        .check-meta { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+        .complete-banner { background: linear-gradient(135deg, var(--green-dim), var(--gold-dim)); border-radius: 14px; padding: 24px; text-align: center; border: 1px solid rgba(45,212,168,0.2); margin-top: 16px; }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .stat-box { text-align: center; padding: 14px 10px; }
+        .stat-val { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .stat-label { font-size: 10px; color: var(--text-dim); }
+        .week-chart { display: flex; justify-content: space-between; align-items: flex-end; height: 100px; gap: 6px; }
+        .week-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .week-val { font-size: 10px; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+        .week-track { width: 100%; max-width: 28px; border-radius: 5px; position: relative; height: 60px; background: rgba(200,164,49,0.06); }
+        .week-fill { position: absolute; bottom: 0; width: 100%; border-radius: 5px; transition: height 0.5s; }
+        .week-day { font-size: 10px; color: var(--text-dim); }
+
+        /* Brain */
+        .brain-wrap { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 1; }
+        .brain-wrap svg { width: 100%; height: 100%; }
+        .brain-info { margin-top: 14px; padding: 12px; border-radius: 10px; text-align: center; transition: all 0.3s; }
+        .brain-hint { text-align: center; margin-top: 10px; font-size: 11px; color: var(--text-dim); font-style: italic; }
+        .area-row { padding: 10px 0; cursor: pointer; }
+        .area-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .area-name { font-size: 12px; font-weight: 500; }
+        .area-pct { font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .area-track { height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+        .area-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+        .area-desc { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+        /* Leaderboard */
+        .board-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+        .board-tab { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; text-align: center; transition: all 0.2s; background: transparent; color: var(--text-dim); }
+        .board-tab.active { background: var(--gold-dim); color: var(--gold); }
+        .board-tab.active-pink { background: var(--pink-dim); color: var(--pink); }
+        .board-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 10px; margin-bottom: 5px; }
+        .board-row.user { background: var(--gold-dim); border: 1px solid rgba(200,164,49,0.3); }
+        .board-rank { width: 28px; text-align: center; font-family: monospace; }
+        .board-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: monospace; border: 1px solid var(--border); }
+        .board-avatar.user-av { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+        .board-info { flex: 1; }
+        .board-name { font-size: 13px; font-weight: 500; }
+        .board-name.user-name { font-weight: 700; color: var(--gold); }
+        .board-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+        /* Referral */
+        .ref-hero { background: linear-gradient(145deg, #1a0a20 0%, #0a0515 100%); border: 1px solid rgba(236,72,153,0.2); text-align: center; }
+        .ref-link-box { padding: 10px 14px; border-radius: 10px; background: rgba(236,72,153,0.08); border: 1px solid rgba(236,72,153,0.2); display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+        .ref-link-text { flex: 1; font-size: 11px; color: var(--text-dim); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ref-copy-btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; background: var(--pink); color: #fff; font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace; transition: all 0.2s; }
+        .ref-copy-btn.copied { background: var(--green); }
+        .ref-share-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .share-grid { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .share-item { padding: 10px; border-radius: 8px; cursor: pointer; text-align: center; font-size: 12px; font-weight: 600; }
+        .reward-item { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-radius: 10px; margin-bottom: 6px; }
+        .reward-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .reward-info { flex: 1; }
+        .reward-title { font-size: 12px; font-weight: 600; }
+        .reward-desc { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+        .msg-box { padding: 12px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+        .msg-label { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+        .msg-text { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+        .msg-copy { font-size: 10px; margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+        .earn-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .earn-box { text-align: center; padding: 12px 6px; border-radius: 10px; background: rgba(200,164,49,0.06); border: 1px solid var(--border); }
+        .earn-val { font-size: 18px; font-weight: 700; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+
+        .hidden { display: none; }
+        @media (max-width: 360px) {
+            .nav-tab { padding: 7px 10px; font-size: 11px; }
+            .stat-val { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-brand">Il Codice del Passo Inverso</div>
+    <div class="header-sub" id="headerSub">Giorno 1 · 🔥 0 giorni streak</div>
+    <div class="level-bar-wrap">
+        <div class="level-labels">
+            <span class="level-current" id="levelCurrent">◇ Iniziato</span>
+            <span class="level-next" id="levelNext">◈ Praticante</span>
+        </div>
+        <div class="level-track"><div class="level-fill" id="levelFill" style="width: 0%"></div></div>
+        <div class="level-pts" id="levelPts">0 pts · 500 al prossimo livello</div>
+    </div>
+</div>
+
+<div class="nav">
+    <button class="nav-tab active" data-tab="checklist" onclick="switchTab('checklist')">✅ Oggi</button>
+    <button class="nav-tab" data-tab="stats" onclick="switchTab('stats')">📊 Stats</button>
+    <button class="nav-tab" data-tab="brain" onclick="switchTab('brain')">🧠 Cervello</button>
+    <button class="nav-tab" data-tab="classifica" onclick="switchTab('classifica')">🏆 Classifica</button>
+    <button class="nav-tab" data-tab="referral" onclick="switchTab('referral')">🚀 Invita</button>
+</div>
+
+<div class="content">
+
+    <!-- CHECKLIST TAB -->
+    <div id="tab-checklist">
+        <div class="card">
+            <div class="check-header">
+                <div>
+                    <div style="font-size:14px;font-weight:600">Checklist di Oggi</div>
+                    <div class="check-date" id="todayDate"></div>
+                </div>
+                <div class="check-count" id="checkCount" style="background:var(--gold-dim);color:var(--gold)">0/7</div>
+            </div>
+            <div id="checklistContainer"></div>
+        </div>
+        <div id="completeBanner" class="complete-banner hidden">
+            <div style="font-size:28px;margin-bottom:6px">✦</div>
+            <div style="font-size:16px;font-weight:700;color:var(--green)">Codice Completato</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:4px">+100 punti bonus</div>
+        </div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div id="tab-stats" class="hidden">
+        <div class="stats-grid">
+            <div class="card stat-box" style="margin-bottom:0"><div class="stat-val" style="color:var(--green)" id="statStreak">0</div><div class="stat-label">Streak (giorni)</div></div>
+            <div class="card stat-box" style="margin-bottom:0"><div class="stat-val" style="color:var(--gold)" id="statCompl">0%</div><div class="stat-label">Completamento</div></div>
+            <div class="card stat-box" style="margin-bottom:0"><div class="stat-val" style="color:var(--purple)" id="statRank">#—</div><div class="stat-label">Posizione</div></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Questa Settimana</div>
+            <div class="week-chart" id="weekChart"></div>
+        </div>
+        <div class="card" style="background:linear-gradient(135deg,var(--pink-dim),var(--purple-dim));border-color:rgba(236,72,153,0.15)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--pink)">🚀 I tuoi Referral</div>
+                    <div style="font-size:11px;color:var(--text-dim);margin-top:2px" id="refStatSub">0 inviti · €0/mese</div>
+                </div>
+                <div style="font-size:24px;font-weight:700;color:var(--pink);font-family:'JetBrains Mono',monospace" id="refStatNum">0</div>
+            </div>
+            <div onclick="switchTab('referral')" style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(236,72,153,0.15);text-align:center;cursor:pointer;font-size:12px;color:var(--pink);font-weight:600">Invita amici → Sblocca premi</div>
+        </div>
+    </div>
+
+    <!-- BRAIN TAB -->
+    <div id="tab-brain" class="hidden">
+        <div class="card">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Mappa di Attivazione Neurale</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:14px">Basata sui tuoi progressi</div>
+            <div class="brain-wrap">
+                <svg id="brainSvg" viewBox="0 0 100 90"></svg>
+            </div>
+            <div id="brainInfo" class="brain-hint">Tocca un'area per i dettagli</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Dettaglio Aree</div>
+            <div id="areaList"></div>
+        </div>
+    </div>
+
+    <!-- CLASSIFICA TAB -->
+    <div id="tab-classifica" class="hidden">
+        <div class="board-tabs">
+            <button class="board-tab active" id="boardGlobal" onclick="switchBoard('global')">🌍 Globale</button>
+            <button class="board-tab" id="boardRef" onclick="switchBoard('referral')">🚀 Inviti</button>
+        </div>
+        <div class="card" id="boardContainer"></div>
+    </div>
+
+    <!-- REFERRAL TAB -->
+    <div id="tab-referral" class="hidden">
+        <div class="card ref-hero" id="refHero"></div>
+        <div class="card" id="refTiers"></div>
+        <div class="card" id="refRewards"></div>
+        <div class="card" id="refMessages"></div>
+        <div class="card" id="refEarnings" style="background:linear-gradient(135deg,rgba(200,164,49,0.06),rgba(139,92,246,0.06));border-color:rgba(200,164,49,0.15)"></div>
+    </div>
+
+</div>
+
+<script>
+// ===== DATA =====
+const ITEMS = [
+    { id:1, label:"Sveglia consapevole (no telefono 5 min)", area:"prefrontale", pts:10 },
+    { id:2, label:"Ascolto Audio di Attivazione", area:"temporale", pts:15 },
+    { id:3, label:"Osservazione senza giudizio (3 min)", area:"parietale", pts:12 },
+    { id:4, label:"Scrittura del passo inverso", area:"prefrontale", pts:15 },
+    { id:5, label:"Azione consapevole #1 completata", area:"limbico", pts:20 },
+    { id:6, label:"Integrazione serale (riflessione 5 min)", area:"occipitale", pts:12 },
+    { id:7, label:"Pratica completata senza interruzioni", area:"cerebelletto", pts:16 },
+];
+
+const AREAS = [
+    { id:"prefrontale", name:"Corteccia Prefrontale", desc:"Decisioni, pianificazione", x:50, y:15, r:22, color:"#c8a431" },
+    { id:"limbico", name:"Sistema Limbico", desc:"Emozioni, motivazione", x:50, y:42, r:18, color:"#8b5cf6" },
+    { id:"parietale", name:"Lobo Parietale", desc:"Consapevolezza sensoriale", x:72, y:28, r:16, color:"#3b82f6" },
+    { id:"temporale", name:"Lobo Temporale", desc:"Memoria, pattern", x:28, y:28, r:16, color:"#2dd4a8" },
+    { id:"occipitale", name:"Lobo Occipitale", desc:"Visualizzazione profonda", x:50, y:58, r:14, color:"#f59e0b" },
+    { id:"cerebelletto", name:"Cervelletto", desc:"Abitudini, automatismi", x:50, y:75, r:15, color:"#ef4444" },
+];
+
+const LEVELS = [
+    { name:"Iniziato", min:0, icon:"◇" }, { name:"Praticante", min:500, icon:"◈" },
+    { name:"Attivatore", min:1500, icon:"⬡" }, { name:"Integratore", min:3000, icon:"⬢" },
+    { name:"Maestro", min:5000, icon:"✦" },
+];
+
+const REF_TIERS = [
+    { name:"Esploratore", min:0, icon:"◇", reward:"Commissione 30% (€10/invito)", color:"var(--text)" },
+    { name:"Guida", min:5, icon:"◈", reward:"+1 mese gratis + Commissione 35%", color:"var(--blue)" },
+    { name:"Ambasciatore", min:10, icon:"⬡", reward:"+Sessione 1-to-1 + Commissione 40%", color:"var(--purple)" },
+    { name:"Fondatore", min:25, icon:"✦", reward:"+Membership GRATIS a vita + 50%", color:"var(--gold)" },
+];
+
+const REWARDS = [
+    { inviti:1, premio:"Badge 'Primo Passo' nel gruppo", icon:"🏅" },
+    { inviti:3, premio:"1 mese gratis di membership", icon:"🎁" },
+    { inviti:5, premio:"Accesso audio esclusivo 'Il Secondo Codice'", icon:"🎧" },
+    { inviti:10, premio:"Sessione 1-to-1 con il fondatore (30 min)", icon:"🎯" },
+    { inviti:15, premio:"Titolo Ambasciatore permanente + canale privato", icon:"👑" },
+    { inviti:25, premio:"Membership GRATIS A VITA + 50% commissione", icon:"♾️" },
+];
+
+const GLOBAL_BOARD = [
+    { rank:1, name:"Marco V.", streak:47, pts:4280, level:"Maestro", av:"MV" },
+    { rank:2, name:"Sara L.", streak:41, pts:3920, level:"Maestro", av:"SL" },
+    { rank:3, name:"Luca T.", streak:38, pts:3650, level:"Integratore", av:"LT" },
+    { rank:4, name:"Tu", streak:23, pts:2180, level:"Attivatore", av:"TU", isUser:true },
+    { rank:5, name:"Giulia R.", streak:21, pts:2040, level:"Attivatore", av:"GR" },
+    { rank:6, name:"Andrea M.", streak:19, pts:1870, level:"Attivatore", av:"AM" },
+    { rank:7, name:"Elena P.", streak:15, pts:1520, level:"Praticante", av:"EP" },
+];
+
+const REF_BOARD = [
+    { rank:1, name:"Sara L.", inviti:14, attivi:12, guadagno:"€132/mese", av:"SL", tier:"Ambasciatore" },
+    { rank:2, name:"Marco V.", inviti:11, attivi:9, guadagno:"€99/mese", av:"MV", tier:"Guida" },
+    { rank:3, name:"Tu", inviti:3, attivi:3, guadagno:"€33/mese", av:"TU", isUser:true, tier:"Esploratore" },
+    { rank:4, name:"Giulia R.", inviti:2, attivi:2, guadagno:"€22/mese", av:"GR", tier:"Esploratore" },
+];
+
+const WEEK = [{d:"L",c:6},{d:"M",c:7},{d:"M",c:5},{d:"G",c:7},{d:"V",c:4},{d:"S",c:7},{d:"D",c:3}];
+
+// ===== STATE =====
+let checks = {};
+let activeTab = "checklist";
+let boardMode = "global";
+let showShare = false;
+let copiedLink = false;
+let hoveredArea = null;
+const userInviti = 3;
+const userStreak = 23;
+const basePts = 2180;
+const refLink = "whop.com/passo-inverso/?ref=TU123";
+
+// ===== TELEGRAM WEB APP =====
+let tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// ===== FUNCTIONS =====
+function getToday() {
+    const d = new Date();
+    const days = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function calcPoints() {
+    let pts = basePts;
+    ITEMS.forEach(item => { if (checks[item.id]) pts += item.pts; });
+    if (Object.values(checks).filter(Boolean).length === 7) pts += 100;
+    return pts;
+}
+
+function getLevel(pts) {
+    for (let i = LEVELS.length - 1; i >= 0; i--) { if (pts >= LEVELS[i].min) return LEVELS[i]; }
+    return LEVELS[0];
+}
+
+function getActivation() {
+    const base = { prefrontale:72, limbico:58, parietale:45, temporale:63, occipitale:38, cerebelletto:51 };
+    const act = {};
+    AREAS.forEach(a => {
+        const boost = ITEMS.filter(i => i.area === a.id && checks[i.id]).length * 8;
+        act[a.id] = Math.min(100, (base[a.id] || 30) + boost);
+    });
+    return act;
+}
+
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.nav-tab').forEach(t => {
+        t.classList.remove('active', 'active-pink');
+        if (t.dataset.tab === tab) t.classList.add(tab === 'referral' ? 'active-pink' : 'active');
+    });
+    ['checklist','stats','brain','classifica','referral'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+    });
+    render();
+}
+
+function switchBoard(mode) {
+    boardMode = mode;
+    document.getElementById('boardGlobal').className = 'board-tab' + (mode === 'global' ? ' active' : '');
+    document.getElementById('boardRef').className = 'board-tab' + (mode === 'referral' ? ' active-pink' : '');
+    renderBoard();
+}
+
+function toggleCheck(id) {
+    checks[id] = !checks[id];
+    render();
+}
+
+// ===== RENDERERS =====
+function render() {
+    const done = Object.values(checks).filter(Boolean).length;
+    const pts = calcPoints();
+    const level = getLevel(pts);
+    const nextIdx = LEVELS.indexOf(level) + 1;
+    const next = nextIdx < LEVELS.length ? LEVELS[nextIdx] : null;
+    const progress = next ? ((pts - level.min) / (next.min - level.min)) * 100 : 100;
+
+    // Header
+    document.getElementById('headerSub').textContent = `Giorno ${userStreak} · 🔥 ${userStreak} giorni streak`;
+    document.getElementById('levelCurrent').textContent = `${level.icon} ${level.name}`;
+    document.getElementById('levelNext').textContent = next ? `${next.icon} ${next.name}` : '';
+    document.getElementById('levelFill').style.width = progress + '%';
+    document.getElementById('levelPts').textContent = `${pts.toLocaleString()} pts` + (next ? ` · ${(next.min - pts).toLocaleString()} al prossimo livello` : '');
+
+    // Checklist
+    document.getElementById('todayDate').textContent = getToday();
+    const countEl = document.getElementById('checkCount');
+    countEl.textContent = `${done}/7`;
+    countEl.style.background = done === 7 ? 'var(--green-dim)' : 'var(--gold-dim)';
+    countEl.style.color = done === 7 ? 'var(--green)' : 'var(--gold)';
+
+    let checkHtml = '';
+    ITEMS.forEach(item => {
+        const checked = checks[item.id];
+        const area = AREAS.find(a => a.id === item.area);
+        checkHtml += `<div class="check-item ${checked ? 'checked' : ''}" style="${checked ? `background:${area.color}08;border-color:${area.color}30` : ''}" onclick="toggleCheck(${item.id})">
+            <div class="check-box" style="${checked ? `border-color:${area.color};background:${area.color}` : ''}">${checked ? '<span style="color:var(--bg)">✓</span>' : ''}</div>
+            <div style="flex:1">
+                <div class="check-label ${checked ? 'done' : ''}" style="${checked ? `color:${area.color}` : ''}">${item.label}</div>
+                <div class="check-meta">🧠 ${area.name} · +${item.pts} pts</div>
+            </div>
+        </div>`;
+    });
+    document.getElementById('checklistContainer').innerHTML = checkHtml;
+    document.getElementById('completeBanner').classList.toggle('hidden', done !== 7);
+
+    // Stats
+    document.getElementById('statStreak').textContent = userStreak;
+    document.getElementById('statCompl').textContent = '82%';
+    document.getElementById('statRank').textContent = '#4';
+    document.getElementById('refStatNum').textContent = userInviti;
+    document.getElementById('refStatSub').textContent = `${userInviti} inviti · €${userInviti * 11}/mese`;
+
+    let weekHtml = '';
+    WEEK.forEach(w => {
+        const pct = (w.c / 7) * 100;
+        const grad = w.c === 7 ? 'linear-gradient(180deg,var(--green),rgba(45,212,168,0.4))' : 'linear-gradient(180deg,var(--gold),rgba(200,164,49,0.4))';
+        weekHtml += `<div class="week-bar-wrap"><div class="week-val">${w.c}/7</div><div class="week-track"><div class="week-fill" style="height:${pct}%;background:${grad}"></div></div><div class="week-day">${w.d}</div></div>`;
+    });
+    document.getElementById('weekChart').innerHTML = weekHtml;
+
+    // Brain
+    renderBrain();
+    renderBoard();
+    renderReferral();
+}
+
+function renderBrain() {
+    const act = getActivation();
+    let svg = `<defs><filter id="bl"><feGaussianBlur stdDeviation="2"/></filter>`;
+    AREAS.forEach(a => {
+        svg += `<radialGradient id="g-${a.id}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${a.color}" stop-opacity="${Math.min(1,(act[a.id]||0)/80)}"/><stop offset="100%" stop-color="${a.color}" stop-opacity="0"/></radialGradient>`;
+    });
+    svg += `</defs><ellipse cx="50" cy="40" rx="38" ry="35" fill="none" stroke="rgba(200,164,49,0.15)" stroke-width="0.5"/>`;
+    AREAS.forEach(a => {
+        const v = act[a.id] || 0;
+        const h = hoveredArea === a.id;
+        const s = h ? 1.3 : 1;
+        svg += `<g onclick="selectBrainArea('${a.id}')" style="cursor:pointer">
+            <circle cx="${a.x}" cy="${a.y}" r="${a.r*1.8}" fill="url(#g-${a.id})" filter="url(#bl)"/>
+            <circle cx="${a.x}" cy="${a.y}" r="${a.r*s*0.6}" fill="${a.color}" fill-opacity="${0.1+(v/100)*0.5}" stroke="${a.color}" stroke-width="${h?1.2:0.6}" stroke-opacity="${0.3+(v/100)*0.7}"/>
+            <circle cx="${a.x}" cy="${a.y}" r="${a.r*s*0.25}" fill="${a.color}" fill-opacity="${0.4+(v/100)*0.6}"/>
+            <text x="${a.x}" y="${a.y+a.r*0.8+4}" text-anchor="middle" fill="${a.color}" font-size="3.2" font-family="monospace" fill-opacity="0.8">${v}%</text>
+        </g>`;
+    });
+    document.getElementById('brainSvg').innerHTML = svg;
+
+    const info = document.getElementById('brainInfo');
+    if (hoveredArea) {
+        const a = AREAS.find(x => x.id === hoveredArea);
+        const v = act[a.id] || 0;
+        info.className = 'brain-info';
+        info.style.background = `${a.color}10`;
+        info.style.border = `1px solid ${a.color}25`;
+        info.innerHTML = `<div style="font-size:14px;font-weight:600;color:${a.color}">${a.name}</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px">${a.desc}</div><div style="font-size:20px;font-weight:700;color:${a.color};margin-top:4px;font-family:monospace">${v}%</div>`;
+    } else {
+        info.className = 'brain-hint';
+        info.style.background = '';
+        info.style.border = '';
+        info.innerHTML = "Tocca un'area per i dettagli";
+    }
+
+    let areaHtml = '';
+    AREAS.forEach((a, i) => {
+        const v = act[a.id] || 0;
+        areaHtml += `<div class="area-row" style="${i < AREAS.length-1 ? 'border-bottom:1px solid var(--border)' : ''}" onclick="selectBrainArea('${a.id}')">
+            <div class="area-header"><span class="area-name" style="color:${a.color}">${a.name}</span><span class="area-pct" style="color:${a.color}">${v}%</span></div>
+            <div class="area-track"><div class="area-fill" style="width:${v}%;background:linear-gradient(90deg,${a.color}80,${a.color})"></div></div>
+            <div class="area-desc">${a.desc}</div>
+        </div>`;
+    });
+    document.getElementById('areaList').innerHTML = areaHtml;
+}
+
+function selectBrainArea(id) {
+    hoveredArea = hoveredArea === id ? null : id;
+    renderBrain();
+}
+
+function renderBoard() {
+    const medals = {1:"🥇",2:"🥈",3:"🥉"};
+    let html = '';
+    if (boardMode === 'global') {
+        html = '<div style="font-size:13px;font-weight:600;margin-bottom:10px">Classifica Globale — Punti</div>';
+        GLOBAL_BOARD.forEach(e => {
+            html += `<div class="board-row ${e.isUser?'user':''}">
+                <span class="board-rank" style="font-size:${e.rank<=3?'18':'13'}px;color:var(--text-dim)">${medals[e.rank]||'#'+e.rank}</span>
+                <div class="board-avatar ${e.isUser?'user-av':''}" style="${e.isUser?'':'background:var(--card-alt)'}">${e.av}</div>
+                <div class="board-info"><div class="board-name ${e.isUser?'user-name':''}">${e.name}${e.isUser?' ← Tu':''}</div><div class="board-sub">${e.level}</div></div>
+                <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--gold);font-family:monospace">${e.pts.toLocaleString()}</div><div style="font-size:10px;color:var(--green)">🔥 ${e.streak}gg</div></div>
+            </div>`;
+        });
+    } else {
+        html = '<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--pink)">Classifica Inviti</div>';
+        REF_BOARD.forEach(e => {
+            html += `<div class="board-row ${e.isUser?'user':''}">
+                <span class="board-rank" style="font-size:${e.rank<=3?'18':'13'}px;color:var(--text-dim)">${medals[e.rank]||'#'+e.rank}</span>
+                <div class="board-avatar ${e.isUser?'user-av':''}" style="${e.isUser?'':'background:var(--card-alt)'}">${e.av}</div>
+                <div class="board-info"><div class="board-name ${e.isUser?'user-name':''}">${e.name}${e.isUser?' ← Tu':''}</div><div class="board-sub">${e.tier}</div></div>
+                <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--pink);font-family:monospace">${e.inviti} inviti</div><div style="font-size:10px;color:var(--green)">${e.guadagno}</div></div>
+            </div>`;
+        });
+    }
+    document.getElementById('boardContainer').innerHTML = html;
+}
+
+function renderReferral() {
+    const curTier = [...REF_TIERS].reverse().find(t => userInviti >= t.min);
+    const nextIdx = REF_TIERS.indexOf(curTier) + 1;
+    const nextTier = nextIdx < REF_TIERS.length ? REF_TIERS[nextIdx] : null;
+
+    // Hero
+    document.getElementById('refHero').innerHTML = `
+        <div style="font-size:11px;letter-spacing:0.2em;color:var(--pink);font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:8px">Il tuo sistema referral</div>
+        <div style="font-size:36px;font-weight:700;color:var(--pink);font-family:'JetBrains Mono',monospace">${userInviti}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">persone invitate · €${userInviti*11}/mese guadagnato</div>
+        <div class="ref-link-box">
+            <div class="ref-link-text">${refLink}</div>
+            <button class="ref-copy-btn ${copiedLink?'copied':''}" onclick="copyLink()">${copiedLink?'✓ Copiato!':'Copia'}</button>
+        </div>
+        <button class="ref-share-btn" onclick="toggleShare()">🚀 Condividi il Codice</button>
+        <div class="share-grid" id="shareGrid" style="${showShare?'':'display:none'}">
+            <div class="share-item" style="background:#25D36615;border:1px solid #25D36630;color:#25D366">💬 WhatsApp</div>
+            <div class="share-item" style="background:#E1306C15;border:1px solid #E1306C30;color:#E1306C">📱 Instagram</div>
+            <div class="share-item" style="background:#0088cc15;border:1px solid #0088cc30;color:#0088cc">✈️ Telegram</div>
+            <div class="share-item" style="background:var(--gold-dim);border:1px solid rgba(200,164,49,0.3);color:var(--gold)">📋 Copia testo</div>
+        </div>`;
+
+    // Tiers
+    let tiersHtml = '<div class="card-title">Il tuo Livello Referral</div>';
+    tiersHtml += `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:${curTier.color};font-weight:600">${curTier.icon} ${curTier.name}</span>`;
+    if (nextTier) tiersHtml += `<span style="font-size:11px;color:var(--text-dim)">${nextTier.icon} ${nextTier.name} (${nextTier.min} inviti)</span>`;
+    tiersHtml += '</div>';
+    if (nextTier) {
+        tiersHtml += `<div style="height:5px;background:rgba(236,72,153,0.08);border-radius:3px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${(userInviti/nextTier.min)*100}%;border-radius:3px;background:linear-gradient(90deg,var(--pink),var(--purple))"></div></div>`;
+        tiersHtml += `<div style="font-size:10px;color:var(--text-dim);font-family:monospace">${userInviti}/${nextTier.min} · Mancano ${nextTier.min-userInviti}: ${nextTier.reward}</div>`;
+    }
+    tiersHtml += '<div style="margin-top:14px">';
+    REF_TIERS.forEach((t, i) => {
+        const active = t.name === curTier.name;
+        tiersHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i<REF_TIERS.length-1?'border-bottom:1px solid var(--border)':''};opacity:${userInviti>=t.min?1:0.4}">
+            <span style="font-size:18px;width:28px;text-align:center">${t.icon}</span>
+            <div style="flex:1"><div style="font-size:12px;font-weight:${active?700:400};color:${active?t.color:'var(--text)'}">${t.name}${active?' ← Sei qui':''} <span style="font-size:10px;color:var(--text-dim)">(${t.min}+)</span></div><div style="font-size:10px;color:var(--text-dim)">${t.reward}</div></div>
+            ${userInviti>=t.min?'<span style="color:var(--green);font-size:14px">✓</span>':''}
+        </div>`;
+    });
+    tiersHtml += '</div>';
+    document.getElementById('refTiers').innerHTML = tiersHtml;
+
+    // Rewards
+    let rewHtml = '<div class="card-title" style="color:var(--gold)">🎁 Premi da Sbloccare</div>';
+    REWARDS.forEach(r => {
+        const unlocked = userInviti >= r.inviti;
+        rewHtml += `<div class="reward-item" style="background:${unlocked?'var(--green-dim)':'rgba(255,255,255,0.02)'};border:1px solid ${unlocked?'rgba(45,212,168,0.2)':'var(--border)'};opacity:${unlocked?1:0.6}">
+            <div class="reward-icon" style="background:${unlocked?'rgba(45,212,168,0.15)':'rgba(255,255,255,0.03)'}">${r.icon}</div>
+            <div class="reward-info"><div class="reward-title" style="color:${unlocked?'var(--green)':'var(--text)'}">${r.inviti} invit${r.inviti===1?'o':'i'}${unlocked?' ✓ Sbloccato!':''}</div><div class="reward-desc">${r.premio}</div></div>
+            ${!unlocked?`<div style="font-size:11px;color:var(--pink);font-family:monospace;font-weight:600">-${r.inviti-userInviti}</div>`:''}
+        </div>`;
+    });
+    document.getElementById('refRewards').innerHTML = rewHtml;
+
+    // Messages
+    const msgs = [
+        { label:"Messaggio Diretto", text:"Ho iniziato una pratica quotidiana che sta cambiando il mio modo di agire. Si chiama Il Codice del Passo Inverso. Se sei una persona che vede tanto ma agisce poco, dacci un'occhiata →", color:"var(--blue)" },
+        { label:"Per le Storie", text:"23 giorni consecutivi. La mia capacita di osservare e diventata la mia capacita di agire. Il Codice del Passo Inverso. Se ti riconosci, il link e in bio.", color:"var(--purple)" },
+        { label:"Provocazione", text:"Quante volte hai rimandato non per paura, ma perche vedevi troppo? C'e un codice per questo. E funziona.", color:"var(--pink)" },
+    ];
+    let msgHtml = '<div class="card-title">📝 Messaggi Pronti</div><div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Tocca per copiare e inviare</div>';
+    msgs.forEach(m => {
+        msgHtml += `<div class="msg-box" style="background:${m.color}08;border:1px solid ${m.color}20" onclick="copyText('${m.text.replace(/'/g,"\\'")}')">
+            <div class="msg-label" style="color:${m.color}">${m.label}</div>
+            <div class="msg-text">${m.text}</div>
+            <div class="msg-copy" style="color:${m.color}">Tocca per copiare →</div>
+        </div>`;
+    });
+    document.getElementById('refMessages').innerHTML = msgHtml;
+
+    // Earnings
+    document.getElementById('refEarnings').innerHTML = `
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--gold)">💰 Quanto Puoi Guadagnare</div>
+        <div class="earn-grid">
+            <div class="earn-box"><div class="earn-val">€55</div><div style="font-size:10px;color:var(--text-dim)">/mese</div><div style="font-size:10px;color:var(--gold);margin-top:4px">5 inviti</div></div>
+            <div class="earn-box"><div class="earn-val">€132</div><div style="font-size:10px;color:var(--text-dim)">/mese</div><div style="font-size:10px;color:var(--gold);margin-top:4px">10 inviti</div></div>
+            <div class="earn-box"><div class="earn-val">€412</div><div style="font-size:10px;color:var(--text-dim)">/mese</div><div style="font-size:10px;color:var(--gold);margin-top:4px">25 inviti</div></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:10px;text-align:center;font-style:italic">Commissione ricorrente: guadagni ogni mese finche l'invitato resta abbonato</div>`;
+}
+
+function copyLink() {
+    navigator.clipboard?.writeText('https://' + refLink);
+    copiedLink = true;
+    render();
+    setTimeout(() => { copiedLink = false; render(); }, 2000);
+}
+
+function toggleShare() {
+    showShare = !showShare;
+    document.getElementById('shareGrid').style.display = showShare ? 'grid' : 'none';
+}
+
+function copyText(text) {
+    navigator.clipboard?.writeText(text + '\n\nhttps://' + refLink);
+    alert('Messaggio copiato!');
+}
+
+// ===== INIT =====
+document.getElementById('todayDate').textContent = getToday();
+render();
+</script>
+</body>
+</html>
